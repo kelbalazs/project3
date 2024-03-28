@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Add Delivery</title>
+    <!-- Bootstrap CSS -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
+      integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC"
+      crossorigin="anonymous"
+    />
+    <!-- Load React -->
+    <script
+      crossorigin
+      src="https://unpkg.com/react@17/umd/react.production.min.js"
+    ></script>
+    <script
+      crossorigin
+      src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"
+    ></script>
+    <!-- Load Babel -->
+    <script
+      crossorigin
+      src="https://unpkg.com/@babel/standalone/babel.min.js"
+    ></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="text/babel">
+      const { useState, useEffect } = React;
+
+      const App = () => {
+        const [apartments, setApartments] = useState([]);
+        const [deliveries, setDeliveries] = useState([]);
+        const [filterApartmentId, setFilterApartmentId] = useState(null);
+        const [formData, setFormData] = useState({
+          apartment: "",
+          courier: "",
+          addressName: "",
+          description: "",
+          deliveryDate: "",
+          deliveryTime: "",
+        });
+
+        useEffect(() => {
+          fetchApartments();
+          fetchDeliveries(filterApartmentId);
+        }, [filterApartmentId]);
+
+        const fetchApartments = () => {
+          fetch("http://localhost:3000/apartments")
+            .then((response) => response.json())
+            .then((data) => setApartments(data))
+            .catch((error) =>
+              console.error("Error fetching apartments:", error)
+            );
+        };
+
+        const fetchDeliveries = (apartmentId) => {
+        
+            let url = `http://localhost:3000/apartments/${apartmentId}/deliveries`;
+
+          fetch(url)
+            .then((response) => response.json())
+            .then((data) => setDeliveries(data))
+            .catch((error) =>
+              console.error("Error fetching deliveries:", error)
+            );
+        };
+
+        const handleFormChange = (event) => {
+          setFormData({ ...formData, [event.target.name]: event.target.value });
+        };
+
+        const handleSubmit = (event) => {
+          event.preventDefault();
+          const delivery = {
+            apartment_id: formData.apartment,
+            courier: formData.courier,
+            address_name: formData.addressName,
+            description: formData.description,
+            delivery_date: formData.deliveryDate,
+            delivery_time: formData.deliveryTime,
+            status: false,
+          };
+
+          fetch("http://localhost:3000/deliveries", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(delivery),
+          })
+            .then((response) => {
+              if (response.ok) {
+                alert("Delivery submitted successfully");
+                setFormData({
+                  apartment: "",
+                  courier: "",
+                  addressName: "",
+                  description: "",
+                  deliveryDate: "",
+                  deliveryTime: "",
+                });
+                fetchDeliveries(filterApartmentId);
+              } else {
+                alert("Error submitting delivery");
+              }
+            })
+            .catch((error) => {
+              console.error("Error:", error);
+              alert("An error occurred while submitting the delivery");
+            });
+        };
+
+        const handleDeliveryStatusChange = (deliveryId, newStatus) => {
+          fetch(`http://localhost:3000/deliveries/${deliveryId}`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ status: newStatus }),
+          })
+            .then((response) => {
+              if (response.ok) {
+                console.log("Delivery status updated successfully");
+                fetchDeliveries(filterApartmentId);
+              } else {
+                console.error("Error updating delivery status");
+              }
+            })
+            .catch((error) => {
+              console.error("Error:", error);
+            });
+        };
+
+        return (
+          <div className="container my-5">
+            <div className="row justify-content-center">
+              <div className="col-md-6">
+                <h2 className="mb-4 text-center">Add Delivery</h2>
+                <form
+                  onSubmit={handleSubmit}
+                  className="mx-auto"
+                  style={{ maxWidth: "400px" }}
+                >
+                  <div className="mb-3">
+                    <label htmlFor="apartment" className="form-label">
+                      Apartment:
+                    </label>
+                    <select
+                      id="apartment"
+                      name="apartment"
+                      value={formData.apartment}
+                      onChange={handleFormChange}
+                      className="form-select"
+                      required
+                    >
+                      <option value="">Select an apartment</option>
+                      {apartments.map((apartment) => (
+                        <option key={apartment.id} value={apartment.id}>
+                          {apartment.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="mb-3">
+                    <label htmlFor="courier" className="form-label">
+                      Courier:
+                    </label>
+                    <input
+                      type="text"
+                      id="courier"
+                      name="courier"
+                      value={formData.courier}
+                      onChange={handleFormChange}
+                      className="form-control"
+                      required
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label htmlFor="addressName" className="form-label">
+                      Addressee Name:
+                    </label>
+                    <input
+                      type="text"
+                      id="addressName"
+                      name="addressName"
+                      value={formData.addressName}
+                      onChange={handleFormChange}
+                      className="form-control"
+                      required
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label htmlFor="description" className="form-label">
+                      Description:
+                    </label>
+                    <input
+                      type="text"
+                      id="description"
+                      name="description"
+                      value={formData.description}
+                      onChange={handleFormChange}
+                      className="form-control"
+                      required
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label htmlFor="deliveryDate" className="form-label">
+                      Delivery Date:
+                    </label>
+                    <input
+                      type="date"
+                      id="deliveryDate"
+                      name="deliveryDate"
+                      value={formData.deliveryDate}
+                      onChange={handleFormChange}
+                      className="form-control"
+                      required
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label htmlFor="deliveryTime" className="form-label">
+                      Delivery Time:
+                    </label>
+                    <input
+                      type="time"
+                      id="deliveryTime"
+                      name="deliveryTime"
+                      value={formData.deliveryTime}
+                      onChange={handleFormChange}
+                      className="form-control"
+                      required
+                    />
+                  </div>
+                  <button type="submit" className="btn btn-primary">
+                    Submit
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            <div className="row justify-content-center mt-5">
+              <div className="col-md-6">
+                <div className="mb-3">
+                  <label htmlFor="apartmentFilter" className="form-label">
+                    Filter by Apartment:
+                  </label>
+                  <select
+                    id="apartmentFilter"
+                    value={filterApartmentId || ""}
+                    onChange={(event) =>
+                      setFilterApartmentId(event.target.value || null)
+                    }
+                    className="form-select"
+                  >
+                    <option value="">All Apartments</option>
+                    {apartments.map((apartment) => (
+                      <option key={apartment.id} value={apartment.id}>
+                        {apartment.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <h2 className="mb-4">Existing Deliveries</h2>
+                  {deliveries.length === 0 ? (
+                    <p>No existing deliveries</p>
+                  ) : (
+                    <ul className="list-group">
+                      {deliveries.map((delivery) => (
+                        <li
+                          key={delivery.id}
+                          className="list-group-item d-flex justify-content-between align-items-center"
+                        >
+                          <div>
+                            <p className="mb-0">
+                              <strong>Courier:</strong> {delivery.courier}
+                            </p>
+                            <p className="mb-0">
+                              <strong>Address Name:</strong>{" "}
+                              {delivery.address_name}
+                            </p>
+                            <p className="mb-0">
+                              <strong>Description:</strong>{" "}
+                              {delivery.description}
+                            </p>
+                            <p className="mb-0">
+  <strong>Delivery Date:</strong>{" "}
+  {new Date(delivery.delivery_date).toLocaleDateString("en-US", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  })}
+</p>
+
+                            
+                            <p className="mb-0">
+                              <strong>Delivery Time:</strong>{" "}
+                              {delivery.delivery_time}
+                            </p>
+                            <p className="mb-0">
+                              <strong>Status:</strong>{" "}
+                              {delivery.status ? "Delivered" : "Pending"}
+                            </p>
+                          </div>
+                          <button
+                            className="btn btn-sm btn-outline-primary"
+                            onClick={() =>
+                              handleDeliveryStatusChange(
+                                delivery.id,
+                                !delivery.status
+                              )
+                            }
+                          >
+                            {delivery.status
+                              ? "Mark as Pending"
+                              : "Mark as Delivered"}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      ReactDOM.render(<App />, document.getElementById("root"));
+    </script>
+  </body>
+</html>
